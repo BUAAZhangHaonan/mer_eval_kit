@@ -258,7 +258,8 @@ class SyntheticAdapter(BaseAdapter):
             label = item.get("label")
             if label is None:
                 space = item.get("label_space")
-                label = space[0] if isinstance(space, Sequence) and space else "neutral"
+                label = space[0] if isinstance(
+                    space, Sequence) and space else "neutral"
             return {"label": label}
 
         if task in {"image_va_reg", "video_va_reg"}:
@@ -297,8 +298,10 @@ def _build_registry() -> Dict[str, DatasetSpec]:
             config_path=(root / "affectnet.json").resolve(),
             eval_kwargs={"split": "val"},
             samples=_make_affectnet_cls_samples(),
-            required_metrics=("acc", "macro_f1", "weighted_f1", "total_samples"),
-            allowed_metrics=("acc", "macro_f1", "weighted_f1", "total_samples"),
+            required_metrics=("acc", "macro_f1",
+                              "weighted_f1", "total_samples"),
+            allowed_metrics=("acc", "macro_f1",
+                             "weighted_f1", "total_samples"),
         ),
         "affectnet_va": DatasetSpec(
             dataset_cls=AffectNetVA,
@@ -357,8 +360,10 @@ def _build_registry() -> Dict[str, DatasetSpec]:
             config_path=(root / "affwild2_expr.json").resolve(),
             eval_kwargs={"split": "val"},
             samples=_make_affwild2_expr_samples(),
-            required_metrics=("acc", "macro_f1", "weighted_f1", "total_samples"),
-            allowed_metrics=("acc", "macro_f1", "weighted_f1", "total_samples"),
+            required_metrics=("acc", "macro_f1",
+                              "weighted_f1", "total_samples"),
+            allowed_metrics=("acc", "macro_f1",
+                             "weighted_f1", "total_samples"),
         ),
         "chsims": DatasetSpec(
             dataset_cls=CHSIMS,
@@ -492,15 +497,18 @@ def _build_registry() -> Dict[str, DatasetSpec]:
             config_path=(root / "emotiontalk.json").resolve(),
             eval_kwargs={"split": "test"},
             samples=_make_emotiontalk_samples(),
-            required_metrics=("acc", "weighted_f1", "macro_f1", "total_samples"),
-            allowed_metrics=("acc", "weighted_f1", "macro_f1", "total_samples"),
+            required_metrics=("acc", "weighted_f1",
+                              "macro_f1", "total_samples"),
+            allowed_metrics=("acc", "weighted_f1",
+                             "macro_f1", "total_samples"),
         ),
         "meld": DatasetSpec(
             dataset_cls=MELD,
             config_path=(root / "meld.json").resolve(),
             eval_kwargs={"split": "test"},
             samples=_make_meld_samples(),
-            required_metrics=("acc", "weighted_f1", "macro_f1", "total_samples"),
+            required_metrics=("acc", "weighted_f1",
+                              "macro_f1", "total_samples"),
             allowed_metrics=(
                 "acc",
                 "weighted_f1",
@@ -515,7 +523,8 @@ def _build_registry() -> Dict[str, DatasetSpec]:
             config_path=(root / "memo_bench.json").resolve(),
             eval_kwargs={"split": "test"},
             samples=_make_memo_bench_samples(),
-            required_metrics=("acc", "macro_f1", "weighted_f1", "total_samples"),
+            required_metrics=("acc", "macro_f1",
+                              "weighted_f1", "total_samples"),
             allowed_metrics=(
                 "acc",
                 "macro_f1",
@@ -547,7 +556,8 @@ def _verify_metrics(name: str, metrics: Mapping[str, object], spec: DatasetSpec)
 
 
 def _install_synthetic_iterator(dataset: BaseDataset, samples: Sequence[MutableMapping[str, object]]) -> None:
-    dataset.iter_samples = _iter_from_samples(samples)  # type: ignore[assignment]
+    dataset.iter_samples = _iter_from_samples(
+        samples)  # type: ignore[assignment]
 
 
 def _run_single_check(name: str, spec: DatasetSpec, max_samples: int) -> None:
@@ -603,7 +613,8 @@ def main() -> None:
 
         print(f"\n[INFO] Validating dataset '{name}'")
         try:
-            _run_single_check(name, registry[name], max_samples=args.max_samples)
+            _run_single_check(
+                name, registry[name], max_samples=args.max_samples)
             print("  -> OK")
         except Exception as exc:  # pragma: no cover - debugging aid
             print(f"  -> FAILED: {exc}")

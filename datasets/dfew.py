@@ -243,10 +243,13 @@ class DFEW(ClassificationDataset):
             # 查找视频文件
             video_path = self._find_video_file(clip_name)
 
-            frames = self._load_frames_from_path(video_path)
+            # 优化视频帧加载：限制为8帧以适应32K上下文
+            frames = self._load_frames_from_path(video_path, num_frames=8)
 
-            if not video_path:
+            if not frames and not video_path:
                 logger.warning(f"找不到视频文件: {clip_name}")
+            elif not frames and video_path:
+                logger.warning(f"视频文件存在但无法加载帧: {clip_name}")
 
             yield {
                 "id": f"dfew_{split}_{fold}_{sample_count}",
@@ -257,7 +260,7 @@ class DFEW(ClassificationDataset):
                 "annotation": annotation,
                 "fold": fold,
                 "split": split,
-                "frames":frames
+                "frames": frames
             }
 
             sample_count += 1
@@ -327,29 +330,79 @@ class DFEW(ClassificationDataset):
         return avg_result
     
 
-    def _load_frames_from_path(self, path: str, num_frames: int = 1) -> List[Image.Image]:
+    def _load_frames_from_path(self, path: str, num_frames: int = 8) -> List[Image.Image]:
+        """从路径加载帧，支持视频文件和帧目录
+        
+        Args:
+            path: 视频文件路径或帧目录路径
+            num_frames: 要加载的帧数，默认8帧以适应32K上下文限制
+            
+        Returns:
+            List[Image.Image]: PIL图像列表
+        """
         frames = []
         if not path or not os.path.exists(path):
+            logger.warning(f"路径不存在: {path}")
             return frames
 
-        if os.path.isdir(path):
-            frame_files = sorted([os.path.join(path, f) for f in os.listdir(path) if f.endswith(('.jpg', '.png'))])
-            if not frame_files: return []
-            indices = torch.linspace(0, len(frame_files) - 1, num_frames, dtype=torch.long)
-            for i in indices:
-                img = Image.open(frame_files[i]).convert('RGB')
-                frames.append(img)
-        else:
-            cap = cv2.VideoCapture(path)
-            if not cap.isOpened(): return []
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            if total_frames == 0: return []
-            indices = torch.linspace(0, total_frames - 1, num_frames, dtype=torch.long)
-            for i in indices:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, i.item())
-                ret, frame = cap.read()
-                if ret:
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    frames.append(Image.fromarray(frame_rgb))
-            cap.release()
+        try:
+            if os.path.isdir(path):
+                # 处理帧目录
+                frame_files = sorted([os.path.join(path, f) for f in os.listdir(path) 
+                                  if f.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp'))])
+                if not frame_files:
+                    logger.warning(f"帧目录为空: {path}")
+                    return frames
+                
+                # 均匀采样帧
+                if len(frame_files) <= num_frames:
+                    selected_files = frame_files
+                else:
+                    indices = torch.linspace(0, len(frame_files) - 1, num_frames, dtype=torch.long)
+                    selected_files = [frame_files[i] for i in indices]
+                
+                for file_path in selected_files:
+                    try:
+                        img = Image.open(file_path).convert('RGB')
+                        frames.append(img)
+                    except Exception as e:
+                        logger.warning(f"加载帧失败 {file_path}: {e}")
+                        continue
+                        
+            else:
+                # 处理视频文件
+                cap = cv2.VideoCapture(path)
+                if not cap.isOpened():
+                    logger.warning(f"无法打开视频文件: {path}")
+                    return frames
+                
+                try:
+                    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    if total_frames == 0:
+                        logger.warning(f"视频文件无帧: {path}")
+                        return frames
+                    
+                    # 均匀采样帧
+                    if total_frames <= num_frames:
+                        indices = list(range(total_frames))
+                    else:
+                        indices = torch.linspace(0, total_frames - 1, num_frames, dtype=torch.long)
+                        indices = indices.tolist()
+                    
+                    for i in indices:
+                        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+                        ret, frame = cap.read()
+                        if ret:
+                            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                            frames.append(Image.fromarray(frame_rgb))
+                        else:
+                            logger.warning(f"读取第{i}帧失败: {path}")
+                            
+                finally:
+                    cap.release()
+                    
+        except Exception as e:
+            logger.error(f"加载帧时发生错误 {path}: {e}")
+            
+        logger.debug(f"从 {path} 加载了 {len(frames)} 帧")
         return frames

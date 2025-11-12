@@ -58,13 +58,23 @@ class TestAdapter(BaseAdapter):
 class DatasetTester:
     """数据集测试器"""
 
-    def __init__(self):
-        model_dir = "/home/remote1/lvshuyang/Models/Qwen/Qwen3-Omni-30B-A3B-Thinking"
-        # self.adapter = QwenAdapter(model_path=model_dir)
+    def __init__(self, base_url="http://localhost:8080/v1", model_name="qwen3-omni", max_samples=None, max_frames=8):
+        """
+        初始化数据集测试器
+
+        Args:
+            base_url: vLLM服务地址
+            model_name: 模型名称
+            max_samples: 每个数据集最大测试样本数，None表示使用配置文件中的设置
+            max_frames: 视频最大帧数（考虑到32K上下文限制）
+        """
         self.adapter = Adapter(
-            base_url="http://localhost:8080/v1",  # vLLM 服务的地址
-            model_name="qwen3-omni"                # 你在 vllm serve 命令中设置的 served-model-name
+            base_url=base_url,
+            model_name=model_name,
+            max_frames=max_frames,
+            video_strategy="uniform"  # 均匀采样策略
         )
+        self.max_samples = max_samples
         self.results = {}
 
     def test_dataset(self, dataset_name: str, dataset_class, config_file: str) -> Dict:
@@ -80,8 +90,10 @@ class DatasetTester:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
 
-            # 限制采样数量以加速测试
-            if config.get("max_samples") in (None, 0):
+            # 设置最大样本数（优先使用命令行参数，然后是配置文件，最后是默认值）
+            if self.max_samples is not None:
+                config["max_samples"] = self.max_samples
+            elif config.get("max_samples") in (None, 0):
                 config["max_samples"] = max(5, config.get("probe_samples", 5))
 
             # 创建数据集实例
@@ -186,17 +198,17 @@ class DatasetTester:
         """测试所有数据集"""
         # 定义所有要测试的数据集
         datasets_to_test = [
-            # ("AffectNet_Classifier", AffectNetClassifier, "affectnet.json"),
-            # ("AffectNet_VA", AffectNetVA, "affectnet.json"),
-            # ("AffWild2_VA", AffWild2VA, "affwild2_va.json"),
-            # ("AffWild2_EXPR", AffWild2EXPR, "affwild2_expr.json"),
-            # ("EmotionTalk", EmotionTalk, "emotiontalk.json"),
-            # ("MELD", MELD, "meld.json"),
-            # ("MEMO_Bench", MEMOBench, "memo_bench.json"),
-            # ("CH_SIMS", CHSIMS, "ch_sims.json"),
-            # ("CH_SIMS_V2", CHSIMSV2, "ch_sims_v2.json"),
-            # ("CMU_MOSEI", CMUMOSEI, "cmu_mosei.json"),
-            # ("CMU_MOSI", CMUMOSI, "cmu_mosi.json"),
+            ("AffectNet_Classifier", AffectNetClassifier, "affectnet.json"),
+            ("AffectNet_VA", AffectNetVA, "affectnet.json"),
+            ("AffWild2_VA", AffWild2VA, "affwild2_va.json"),
+            ("AffWild2_EXPR", AffWild2EXPR, "affwild2_expr.json"),
+            ("EmotionTalk", EmotionTalk, "emotiontalk.json"),
+            ("MELD", MELD, "meld.json"),
+            ("MEMO_Bench", MEMOBench, "memo_bench.json"),
+            ("CH_SIMS", CHSIMS, "ch_sims.json"),
+            ("CH_SIMS_V2", CHSIMSV2, "ch_sims_v2.json"),
+            ("CMU_MOSEI", CMUMOSEI, "cmu_mosei.json"),
+            ("CMU_MOSI", CMUMOSI, "cmu_mosi.json"),
             ("DFEW", DFEW, "dfew.json"),
         ]
 
@@ -334,15 +346,60 @@ def main():
                         help="保存测试报告到文件")
     parser.add_argument("--dataset", type=str,
                         help="测试特定数据集（可选）")
+    parser.add_argument("--base-url", type=str, default="http://localhost:8080/v1",
+                        help="vLLM服务地址")
+    parser.add_argument("--model-name", type=str, default="qwen3-omni",
+                        help="模型名称")
+    parser.add_argument("--max-samples", type=int, default=None,
+                        help="每个数据集最大测试样本数")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="只测试数据加载，不进行模型推理")
 
     args = parser.parse_args()
 
-    tester = DatasetTester()
+    tester = DatasetTester(
+        base_url=args.base_url,
+        model_name=args.model_name,
+        max_samples=args.max_samples
+    )
 
     if args.dataset:
         # 测试特定数据集
         logger.info(f"测试指定数据集: {args.dataset}")
-        # 这里可以添加特定数据集的测试逻辑
+        # 查找对应的数据集配置
+        dataset_map = {
+            "AffectNet_Classifier": (AffectNetClassifier, "affectnet.json"),
+            "AffectNet_VA": (AffectNetVA, "affectnet.json"),
+            "AffWild2_VA": (AffWild2VA, "affwild2_va.json"),
+            "AffWild2_EXPR": (AffWild2EXPR, "affwild2_expr.json"),
+            "EmotionTalk": (EmotionTalk, "emotiontalk.json"),
+            "MELD": (MELD, "meld.json"),
+            "MEMO_Bench": (MEMOBench, "memo_bench.json"),
+            "CH_SIMS": (CHSIMS, "ch_sims.json"),
+            "CH_SIMS_V2": (CHSIMSV2, "ch_sims_v2.json"),
+            "CMU_MOSEI": (CMUMOSEI, "cmu_mosei.json"),
+            "CMU_MOSI": (CMUMOSI, "cmu_mosi.json"),
+            "DFEW": (DFEW, "dfew.json"),
+        }
+
+        if args.dataset in dataset_map:
+            dataset_class, config_file = dataset_map[args.dataset]
+            result = tester.test_dataset(
+                args.dataset, dataset_class, config_file)
+
+            # 生成报告
+            report = tester.generate_report({args.dataset: result})
+
+            if args.save_report:
+                report_file = f"dataset_test_{args.dataset.lower()}_report.md"
+                with open(report_file, 'w', encoding='utf-8') as f:
+                    f.write(report)
+                logger.info(f"测试报告已保存到: {report_file}")
+
+            print(report)
+        else:
+            logger.error(f"未知数据集: {args.dataset}")
+            logger.info(f"可用数据集: {', '.join(dataset_map.keys())}")
     else:
         # 测试所有数据集
         tester.run_tests(args.save_report)
