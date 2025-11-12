@@ -1,0 +1,13 @@
+{
+  "root": "/home/remote1/lvshuyang/Datasets/CH-SIMS",
+  "name": "CH-SIMS",
+  "label_file": "label.csv",
+  "raw_dir": "Raw",
+  "processed_dir": "Processed",
+  "use_processed_features": false,
+  "feature_file": "unaligned_39.pkl",
+  "video_extensions": [".mp4", ".avi", ".mov"],
+  "verify_files": true,
+  "strict_mode": false,
+  "max_samples": null
+}

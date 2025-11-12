@@ -1,0 +1,11 @@
+{
+  "root": "/home/remote1/lvshuyang/Datasets/Affwild2",
+  "name": "AffWild2_EXPR",
+  "annotation_dir": "ABAW Annotations/EXPR_Recognition_Challenge",
+  "video_dirs": ["batch1", "batch2", "batch3"],
+  "split": "val",
+  "label_space_8": true,
+  "verify_files": true,
+  "strict_mode": false,
+  "max_samples": null
+}

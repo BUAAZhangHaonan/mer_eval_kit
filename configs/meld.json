@@ -1,0 +1,15 @@
+{
+  "root": "/home/remote1/lvshuyang/Datasets/MELD",
+  "name": "MELD",
+  "train_csv": "train_sent_emo.csv",
+  "dev_csv": "dev_sent_emo.csv",
+  "test_csv": "test_sent_emo.csv",
+  "train_video_dir": "train_splits",
+  "dev_video_dir": "dev_splits_complete",
+  "test_video_dir": "output_repeated_splits_test",
+  "use_video": true,
+  "video_extensions": [".mp4", ".avi", ".mov"],
+  "verify_files": true,
+  "strict_mode": false,
+  "max_samples": null
+}

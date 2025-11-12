@@ -1,0 +1,11 @@
+{
+  "root": "/home/remote1/lvshuyang/Datasets/AffectNet",
+  "name": "AffectNet",
+  "train_dir": "train_set",
+  "val_dir": "val_set",
+  "drop_contempt": false,
+  "verify_files": true,
+  "strict_mode": false,
+  "max_samples": null,
+  "image_extensions": [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]
+}

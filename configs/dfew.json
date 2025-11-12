@@ -1,0 +1,16 @@
+{
+  "root": "/home/remote1/lvshuyang/Datasets/DFEW",
+  "name": "DFEW",
+  "annotation_xlsx": "Annotation/annotation.xlsx",
+  "data_split_dir": "EmoLabel_DataSplit",
+  "clip_dir": "Clip/clip_224x224",
+  "clip_16f_dir": "Clip/clip_224x224_16f",
+  "clip_avi_dir": "Clip/clip_224x224_avi",
+  "original_dir": "Clip/original",
+  "use_preprocessed": true,
+  "use_16_frames": false,
+  "video_extensions": [".mp4", ".avi", ".mov"],
+  "verify_files": true,
+  "strict_mode": false,
+  "max_samples": null
+}

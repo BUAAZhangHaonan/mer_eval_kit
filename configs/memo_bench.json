@@ -1,0 +1,13 @@
+{
+  "root": "/home/remote1/lvshuyang/Datasets/MEMO-Bench",
+  "name": "MEMO-Bench",
+  "emotion_csv": "annotation_emo.csv",
+  "quality_csv": "annotation_quality.csv",
+  "image_dir": "dataset",
+  "use_quality_filter": false,
+  "min_quality_score": 3.0,
+  "image_extensions": [".jpg", ".jpeg", ".png", ".bmp", ".tiff"],
+  "verify_files": true,
+  "strict_mode": false,
+  "max_samples": null
+}

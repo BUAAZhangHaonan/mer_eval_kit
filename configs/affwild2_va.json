@@ -1,0 +1,11 @@
+{
+  "root": "/home/remote1/lvshuyang/Datasets/Affwild2",
+  "name": "AffWild2_VA",
+  "annotation_dir": "ABAW Annotations/VA_Estimation_Challenge",
+  "video_dirs": ["batch1", "batch2", "batch3"],
+  "split": "val",
+  "num_frames": 16,
+  "verify_files": true,
+  "strict_mode": false,
+  "max_samples": null
+}

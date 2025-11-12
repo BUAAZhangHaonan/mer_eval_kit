@@ -1,0 +1,18 @@
+{
+  "root": "/home/remote1/lvshuyang/Datasets/CMU-MOSEI",
+  "name": "CMU-MOSEI",
+  "label_file": "label.csv",
+  "raw_dir": "Raw",
+  "processed_dir": "Processed",
+  "use_processed_features": false,
+  "use_aligned_features": true,
+  "aligned_feature_file": "aligned.pkl",
+  "unaligned_feature_file": "unaligned.pkl",
+  "text_key": "text",
+  "label_key": "label",
+  "video_key": "video_path",
+  "audio_key": "audio_path",
+  "verify_files": true,
+  "strict_mode": false,
+  "max_samples": null
+}

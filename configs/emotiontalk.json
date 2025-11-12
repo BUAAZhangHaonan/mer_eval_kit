@@ -1,0 +1,15 @@
+{
+  "root": "/home/remote1/lvshuyang/Datasets/Emotiontalk",
+  "name": "EmotionTalk",
+  "text_json_dir": "Text/json",
+  "audio_json_dir": "Audio/json",
+  "video_json_dir": "Video/json",
+  "multimodal_json_dir": "Multimodal/json",
+  "audio_wav_dir": "Audio/wav",
+  "video_mp4_dir": "Multimodal/mp4",
+  "include_multimodal": true,
+  "merge_modalities": true,
+  "verify_files": true,
+  "strict_mode": false,
+  "max_samples": null
+}
