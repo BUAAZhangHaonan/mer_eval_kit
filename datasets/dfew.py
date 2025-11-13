@@ -330,7 +330,7 @@ class DFEW(ClassificationDataset):
         return avg_result
     
 
-    def _load_frames_from_path(self, path: str, num_frames: int = 8) -> List[Image.Image]:
+    def _load_frames_from_path(self, path: str, num_frames: int = 16) -> List[Image.Image]:
         """从路径加载帧，支持视频文件和帧目录
         
         Args:

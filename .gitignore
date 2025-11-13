@@ -1,3 +1,6 @@
 .vscode
 *.pyc
+*.md
 __pycache__
+sample_test_results
+evaluation_results

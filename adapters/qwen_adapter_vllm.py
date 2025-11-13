@@ -41,7 +41,7 @@ class Adapter(BaseAdapter):
         """
         print(f"[QwenVLLMAdapter] 初始化客户端，连接到 vLLM 服务 at {base_url}")
         # 不需要 API key，因为是本地服务
-        self.client = OpenAI(base_url=base_url, api_key="dummy")
+        self.client = OpenAI(base_url=base_url, api_key="g203")
         self.model_name = model_name
         self.max_frames = max_frames
         self.video_strategy = video_strategy
@@ -115,29 +115,59 @@ class Adapter(BaseAdapter):
 
         # 构建prompt
         if task in ["mosei_sentiment", "chsims_sentiment"]:
-            prompt = f"请分析以下文本的情感极性，输出一个-3到3之间的数值，其中-3表示最负面，0表示中性，3表示最正面。\n\n文本：{text}\n\n情感极性："
+            prompt = f"文本: {text}\n情感极性 (-3到3): "
         else:
-            prompt = f"请分析以下文本的情感：{text}"
+            prompt = f"文本: {text}\n情感: "
 
         messages = [{"role": "user", "content": prompt}]
 
         try:
+            print(f"[DEBUG] 发送请求到 {self.model_name}，消息数量: {len(messages)}")
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
-                max_tokens=10,
-                temperature=0.0
+                max_tokens=200,
+                temperature=0.1
             )
-
+            print(f"[DEBUG] 收到响应: {response.choices[0].message.content.strip()!r}")
             result = response.choices[0].message.content.strip()
 
+            # 处理thinking内容，如果有的话
+            if result.startswith('<think>'):
+                # 尝试找到</think>标签后的内容
+                end_think = result.find('</think>')
+                if end_think != -1:
+                    result = result[end_think + 8:].strip()
+                else:
+                    # 如果没有结束标签，跳过所有thinking行
+                    lines = result.split('\n')
+                    content_lines = []
+                    in_think = False
+                    for line in lines:
+                        if line.startswith('<think>'):
+                            in_think = True
+                            continue
+                        elif line.startswith('</think>'):
+                            in_think = False
+                            continue
+                        elif in_think:
+                            continue
+                        else:
+                            content_lines.append(line)
+                    result = '\n'.join(content_lines).strip()
+
             if task in ["mosei_sentiment", "chsims_sentiment"]:
-                try:
-                    polarity = float(result)
-                    polarity = max(-3.0, min(3.0, polarity))
-                    return {"polarity": polarity}
-                except ValueError:
-                    return {"polarity": 0.0}
+                # 尝试提取数值
+                import re
+                numbers = re.findall(r'-?\d+\.?\d*', result)
+                if numbers:
+                    try:
+                        polarity = float(numbers[0])
+                        polarity = max(-3.0, min(3.0, polarity))
+                        return {"polarity": polarity}
+                    except ValueError:
+                        pass
+                return {"polarity": 0.0}
             else:
                 return {"label": result}
 
@@ -167,9 +197,9 @@ class Adapter(BaseAdapter):
             options = ", ".join(label_strings)
             prompt = f"从 [{options}] 中选择一个最能描述图像中人物主要情感的词。只回答这个词，不要其他内容。"
         elif task == "image_va_reg":
-            prompt = "请评估图像中人物的效价(valence)和唤醒度(arousal)，格式：valence: [值], arousal: [值]，范围-1到1。"
+            prompt = "请评估图像中人物的效价(valence)和唤醒度(arousal)，格式：valence: [值], arousal: [值]，范围-1到1。只输出格式化的结果。"
         else:
-            prompt = "请描述图像中的情感。"
+            prompt = "请描述图像中的情感。只回答情感标签。"
 
         content = [
             {"type": "image_url", "image_url": {"url": base64_url}},
@@ -247,9 +277,9 @@ class Adapter(BaseAdapter):
             options = ", ".join(label_strings)
             prompt = f"从 [{options}] 中选择一个最能描述视频中人物主要情感的词。只回答这个词，不要其他内容。"
         elif task == "video_va_reg":
-            prompt = "请评估视频中人物的效价(valence)和唤醒度(arousal)，格式：valence: [值], arousal: [值]，范围-1到1。"
+            prompt = "请评估视频中人物的效价(valence)和唤醒度(arousal)，格式：valence: [值], arousal: [值]，范围-1到1。只输出格式化的结果。"
         else:
-            prompt = "请描述视频中的情感。"
+            prompt = "请描述视频中的情感。只回答情感标签。"
 
         content = []
         for url in base64_urls:
@@ -343,11 +373,11 @@ class Adapter(BaseAdapter):
             # 确保label_space中的所有元素都是字符串
             label_strings = [str(label) for label in label_space]
             options = ", ".join(label_strings)
-            prompt = f"基于以上多模态信息，从 [{options}] 中选择一个最能描述情感状态的词。只回答这个词。"
+            prompt = f"基于以上多模态信息，从 [{options}] 中选择一个最能描述情感状态的词。只回答这个词，不要其他内容。"
         elif task == "mosei_sentiment":
-            prompt = "基于以上多模态信息，输出一个-3到3之间的情感极性数值，-3最负面，0中性，3最正面。"
+            prompt = "基于以上多模态信息，输出一个-3到3之间的情感极性数值，-3最负面，0中性，3最正面。只输出数值。"
         else:
-            prompt = "请分析以上多模态信息中的情感。"
+            prompt = "请分析以上多模态信息中的情感。只回答情感标签。"
 
         content.append({"type": "text", "text": prompt})
         messages = [{"role": "user", "content": content}]
@@ -394,13 +424,18 @@ class Adapter(BaseAdapter):
         """
         try:
             # 检查数据类型并选择处理方法
+            if "text" in item and item["text"] is not None:
+                item["text"] = str(item["text"])
+            if "label_space" in item and item["label_space"] is not None:
+                item["label_space"] = [str(label) for label in item["label_space"]]
             has_text = "text" in item and item["text"]
             has_image = "image_path" in item and item["image_path"]
             has_video = ("video_path" in item and item["video_path"]) or (
                 "frames" in item and item["frames"])
 
             # 统计模态数量
-            modality_count = sum([has_text, has_image, has_video])
+            # modality_count = sum([has_text, has_image, has_video])
+            modality_count = 1
 
             # 根据模态数量和任务类型选择处理方法
             if modality_count > 1:

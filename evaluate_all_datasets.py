@@ -145,9 +145,10 @@ class ComprehensiveEvaluator:
 
         # 评估数据集
         try:
-            test_split = config.get("test_split") or config.get("split") or "test"
+            test_split = config.get(
+                "test_split") or config.get("split") or "test"
             eval_result = dataset.evaluate(self.adapter, test_split)
-            
+
             return {
                 "dataset_name": dataset_name,
                 "status": "success",
